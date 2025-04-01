@@ -36,28 +36,28 @@ const koreanConfig: LanguageConfig = {
                 words: [
                   {
                     original: "what are you up to",
-                    korean: "뭐해",
+                    targetWord: "뭐해",
                     pronunciation: "mwo-hae",
                     partOfSpeech: "verb",
                     notes: "Casual way to ask what someone is doing",
                   },
                   {
                     original: "later",
-                    korean: "나중에",
+                    targetWord: "나중에",
                     pronunciation: "na-jung-e",
                     partOfSpeech: "adverb",
                     notes: "Time adverb with particle -에",
                   },
                   {
                     original: "coffee",
-                    korean: "커피",
+                    targetWord: "커피",
                     pronunciation: "keo-pi",
                     partOfSpeech: "noun",
                     notes: "Loanword from English",
                   },
                   {
                     original: "wanna grab",
-                    korean: "마실래",
+                    targetWord: "마실래",
                     pronunciation: "ma-sil-lae",
                     partOfSpeech: "verb",
                     notes: "Using -ㄹ래 ending for suggestions",
@@ -106,42 +106,42 @@ const koreanConfig: LanguageConfig = {
                 words: [
                   {
                     original: "I",
-                    korean: "저는",
+                    targetWord: "저는",
                     pronunciation: "jeo-neun",
                     partOfSpeech: "pronoun",
                     notes: "Humble form of 'I' with subject particle -는",
                   },
                   {
                     original: "believe",
-                    korean: "믿습니다",
+                    targetWord: "믿습니다",
                     pronunciation: "mid-seub-ni-da",
                     partOfSpeech: "verb",
                     notes: "Polite formal ending -ㅂ니다",
                   },
                   {
                     original: "we all",
-                    korean: "우리 모두가",
+                    targetWord: "우리 모두가",
                     pronunciation: "u-ri mo-du-ga",
                     partOfSpeech: "pronoun",
                     notes: "우리 (we) + 모두 (all) + subject particle 가",
                   },
                   {
                     original: "destiny",
-                    korean: "운명을",
+                    targetWord: "운명을",
                     pronunciation: "un-myeong-eul",
                     partOfSpeech: "noun",
                     notes: "운명 (fate) + object particle 을",
                   },
                   {
                     original: "to make",
-                    korean: "만들 수 있는",
+                    targetWord: "만들 수 있는",
                     pronunciation: "man-deul su it-neun",
                     partOfSpeech: "verb",
                     notes: "만들다 (make) + 수 있다 (can) construction",
                   },
                   {
                     original: "power",
-                    korean: "힘을",
+                    targetWord: "힘을",
                     pronunciation: "him-eul",
                     partOfSpeech: "noun",
                     notes: "힘 (strength) + object particle 을",
@@ -199,7 +199,7 @@ const malayalamConfig: LanguageConfig = {
                 words: [
                   {
                     original: "what are you up to",
-                    malayalam: "എന്താ ചെയ്യുന്നേ",
+                    targetWord: "എന്താ ചെയ്യുന്നേ",
                     pronunciation: "enthaa cheyyunne",
                     partOfSpeech: "interrogative phrase",
                     notes:
@@ -207,28 +207,28 @@ const malayalamConfig: LanguageConfig = {
                   },
                   {
                     original: "later",
-                    malayalam: "പിന്നീട്",
+                    targetWord: "പിന്നീട്",
                     pronunciation: "pinniid",
                     partOfSpeech: "adverb",
                     notes: "Temporal adverb meaning 'afterward' or 'later'",
                   },
                   {
                     original: "coffee",
-                    malayalam: "കാപ്പി",
+                    targetWord: "കാപ്പി",
                     pronunciation: "kaappi",
                     partOfSpeech: "noun",
                     notes: "Loanword commonly used in Malayalam",
                   },
                   {
                     original: "wanna grab/drink",
-                    malayalam: "കുടിക്കാൻ",
+                    targetWord: "കുടിക്കാൻ",
                     pronunciation: "kudikkaan",
                     partOfSpeech: "verb",
                     notes: "Infinitive form of 'to drink'",
                   },
                   {
                     original: "will you come",
-                    malayalam: "വരുന്നോ",
+                    targetWord: "വരുന്നോ",
                     pronunciation: "varunno",
                     partOfSpeech: "verb",
                     notes: "Question form of 'coming' with intimate tone",
@@ -278,28 +278,28 @@ const malayalamConfig: LanguageConfig = {
                 words: [
                   {
                     original: "I",
-                    malayalam: "ഞാൻ",
+                    targetWord: "ഞാൻ",
                     pronunciation: "ñaan",
                     partOfSpeech: "pronoun",
                     notes: "First person singular pronoun",
                   },
                   {
                     original: "believe",
-                    malayalam: "വിശ്വസിക്കുന്നു",
+                    targetWord: "വിശ്വസിക്കുന്നു",
                     pronunciation: "viśvasikkunnu",
                     partOfSpeech: "verb",
                     notes: "Present tense of 'to believe'",
                   },
                   {
                     original: "we all",
-                    malayalam: "നമ്മൾ എല്ലാവർക്കും",
+                    targetWord: "നമ്മൾ എല്ലാവർക്കും",
                     pronunciation: "nammaḷ ellāvarkkum",
                     partOfSpeech: "pronoun + universal quantifier",
                     notes: "Inclusive 'we' with 'all' including dative case",
                   },
                   {
                     original: "destiny",
-                    malayalam: "വിധി",
+                    targetWord: "വിധി",
                     pronunciation: "vidhi",
                     partOfSpeech: "noun",
                     notes:
@@ -307,7 +307,7 @@ const malayalamConfig: LanguageConfig = {
                   },
                   {
                     original: "to make/determine",
-                    malayalam: "നിർണയിക്കാനുള്ള",
+                    targetWord: "നിർണയിക്കാനുള്ള",
                     pronunciation: "nirṇayikkaanuḷḷa",
                     partOfSpeech: "verb",
                     notes:
@@ -315,7 +315,7 @@ const malayalamConfig: LanguageConfig = {
                   },
                   {
                     original: "power",
-                    malayalam: "ശക്തി",
+                    targetWord: "ശക്തി",
                     pronunciation: "śakthi",
                     partOfSpeech: "noun",
                     notes: "Common noun for 'power' or 'strength'",

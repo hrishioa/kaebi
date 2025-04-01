@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { TranslationEntry, GroupedHistory } from "./history-manager"; // Import types
 
+// Define AND EXPORT type for language list item
+export interface LanguageListItem {
+  code: string;
+  name: string;
+}
+
 // Define the API structure exposed to the renderer process
 export interface ExposedApi {
   translate: (text: string) => Promise<TranslationEntry | { error: string }>;
@@ -16,6 +22,10 @@ export interface ExposedApi {
   ) => void;
   onEmptyState: (callback: () => void) => void;
   onHistoryCleared: (callback: () => void) => void; // Added for history clear confirmation
+  setLanguage: (
+    langCode: string
+  ) => Promise<{ error?: string } | LanguageListItem[]>; // Returns new list or error
+  getAvailableLanguages: () => Promise<LanguageListItem[]>;
 }
 
 // Expose specific IPC channels to the renderer process
@@ -51,4 +61,7 @@ contextBridge.exposeInMainWorld("api", {
   onHistoryCleared: (callback: () => void) => {
     ipcRenderer.on("history-cleared", () => callback());
   },
+  setLanguage: (langCode: string) =>
+    ipcRenderer.invoke("set-language", langCode),
+  getAvailableLanguages: () => ipcRenderer.invoke("get-available-languages"),
 });

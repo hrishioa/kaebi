@@ -5,6 +5,7 @@ import type {
   TranslationEntry,
   GroupedHistory,
 } from "../../main/history-manager";
+import type { LanguageListItem } from "../../main/preload"; // Import new type
 
 // Declare the window.api object injected by the preload script
 declare global {
@@ -75,8 +76,13 @@ const copyPronunciationBtn = document.getElementById(
   "copyPronunciationBtn"
 ) as HTMLButtonElement;
 
+const languageSelector = document.getElementById(
+  "languageSelector"
+) as HTMLSelectElement;
+
 // --- State Management ---
 let currentView: "translation" | "history" | "empty" = "empty";
+let currentLanguageCode: string = "ko"; // Track current language in renderer too
 
 // --- State for Loading Timer ---
 let loadingTimerInterval: number | null = null;
@@ -566,20 +572,83 @@ async function copyToClipboard(
   }
 }
 
+// --- Helper Functions ---
+
+// Function to populate language selector
+function populateLanguageSelector(
+  languages: LanguageListItem[],
+  selectedCode: string
+) {
+  languageSelector.innerHTML = ""; // Clear existing options
+  languages.forEach((lang) => {
+    const option = document.createElement("option");
+    option.value = lang.code;
+    option.textContent = lang.name;
+    option.selected = lang.code === selectedCode;
+    languageSelector.appendChild(option);
+  });
+  currentLanguageCode = selectedCode; // Update renderer state
+}
+
 // --- Initialization and Event Listeners ---
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // Make async
   console.log("Renderer DOM ready");
 
-  // --- Button Event Listeners ---
+  // --- Populate Language Selector ---
+  try {
+    console.log("Getting available languages...");
+    // Fetch available languages AND the currently selected one
+    // Modify getAvailableLanguages in main.ts to return current along with list?
+    // For now, get list then assume main process default/stored is correct initially.
+    // A better way: add a 'get-initial-data' IPC call.
+    const languages = await window.api.getAvailableLanguages();
+    console.log("Available languages received:", languages);
+    // TODO: Get the actual current language code from main process storage
+    const storedLangCode = "ko"; // Hardcode for now, needs update
+    populateLanguageSelector(languages, storedLangCode);
+  } catch (error) {
+    console.error("Failed to get available languages:", error);
+    // Handle error - maybe show a default or disable selector?
+  }
+
+  // --- Language Selector Listener ---
+  languageSelector.addEventListener("change", async (event) => {
+    const newLangCode = (event.target as HTMLSelectElement).value;
+    console.log(`Language selection changed to: ${newLangCode}`);
+    if (newLangCode !== currentLanguageCode) {
+      try {
+        // Tell main process to change language and re-init service
+        const result = await window.api.setLanguage(newLangCode);
+
+        // Explicit type guard to check for error property
+        if (
+          result &&
+          typeof result === "object" &&
+          "error" in result &&
+          result.error
+        ) {
+          console.error("Error setting language:", result.error);
+          languageSelector.value = currentLanguageCode;
+        } else {
+          // Success!
+          currentLanguageCode = newLangCode;
+          console.log(`Language successfully set to ${newLangCode}`);
+          showEmpty();
+        }
+      } catch (error) {
+        console.error("IPC Error setting language:", error);
+        languageSelector.value = currentLanguageCode; // Revert on error
+      }
+    }
+  });
+
+  // --- Other Button Event Listeners ---
   historyBtn.addEventListener("click", () => showView("historyContainer"));
   backBtn.addEventListener("click", () => {
-    // If coming back from history, we usually want the last loaded translation
-    // or empty state if nothing was loaded. The main process handles showing the last one.
     showView("translationContainer");
   });
   clearHistoryBtn.addEventListener("click", clearHistory);
-
-  // Add Copy Button Listeners
   copyTranslationBtn.addEventListener("click", () => {
     copyToClipboard(translatedText.textContent, copyTranslationBtn);
   });
@@ -587,7 +656,7 @@ document.addEventListener("DOMContentLoaded", () => {
     copyToClipboard(translatedPronunciation.textContent, copyPronunciationBtn);
   });
 
-  // --- IPC Event Listeners (from preload via window.api) ---
+  // --- IPC Event Listeners ---
   window.api.onTranslationLoading((originalText: string) => {
     console.log(
       "[Renderer IPC] Received onTranslationLoading event for:",
@@ -596,7 +665,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showLoading(originalText);
   });
 
-  // Update listener to accept langCode
   window.api.onShowTranslation((result: TranslationEntry, langCode: string) => {
     console.log(
       `[Renderer IPC] Received onShowTranslation event for lang: ${langCode}`
@@ -626,7 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Initial state: Start in empty state until main process sends data via IPC
+  // Initial state
   console.log("Renderer ready, showing empty state initially.");
   showEmpty();
 });

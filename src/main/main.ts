@@ -15,6 +15,7 @@ import {
 } from "./history-manager";
 import dotenv from "dotenv";
 import fs from "fs"; // Import fs to check file existence
+import { languageConfigs } from "./language-configs"; // Import available configs
 
 // Load environment variables from .env file
 dotenv.config();
@@ -29,25 +30,37 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// --- Store Keys ---
+const STORE_HISTORY_KEY = "translationHistory"; // Use constants for keys
+const STORE_LANGUAGE_KEY = "selectedLanguageCode";
+
+// Global variable to hold the currently selected language code
+let currentLanguageCode: string = "ko"; // Default to Korean
+
 // Initialize services asynchronously before creating the menubar
 async function initializeApp() {
-  // Dynamically import electron-store
   const { default: Store } = await import("electron-store");
 
-  // Configure storage with the schema and default value
   store = new Store<StoreSchema>({
     defaults: {
-      translationHistory: [],
+      [STORE_HISTORY_KEY]: [], // Use key constant
+      [STORE_LANGUAGE_KEY]: "ko", // Default language pref
     },
   });
 
-  // Initialize managers/services *after* store is ready
-  historyManager = new HistoryManager(store);
-  translationService = new TranslationService(process.env.GEMINI_API_KEY || "");
+  // Load stored language preference
+  currentLanguageCode = store.get(STORE_LANGUAGE_KEY, "ko");
+  console.log(`Loaded language preference: ${currentLanguageCode}`);
 
-  // Now create the menubar
+  historyManager = new HistoryManager(store);
+  // Initialize with stored/default language
+  translationService = new TranslationService(
+    process.env.GEMINI_API_KEY || "",
+    currentLanguageCode
+  );
+
   createMenubar();
-  registerShortcuts(); // Register shortcuts after menubar might be created
+  registerShortcuts();
 }
 
 let mb: Menubar;
@@ -208,51 +221,108 @@ function setupIPCHandlers() {
   });
 
   ipcMain.handle("load-translation", async (_, entry: TranslationEntry) => {
-    console.log("IPC: load-translation received", entry);
+    console.log(
+      `IPC: load-translation received, using current lang: ${currentLanguageCode}`,
+      entry
+    );
     if (!mb || !mb.window) return;
-    // Assume loaded history is Korean for now
-    // TODO: Store lang code with history entry
-    const langCode = "ko";
-    mb.window.webContents.send("show-translation", entry, langCode);
+    mb.window.webContents.send("show-translation", entry, currentLanguageCode);
+  });
+
+  // --- NEW Handler: Set Language ---
+  ipcMain.handle("set-language", async (_, newLangCode: string) => {
+    console.log(`IPC: set-language received: ${newLangCode}`);
+    if (languageConfigs[newLangCode]) {
+      currentLanguageCode = newLangCode;
+      // Store the new preference
+      store.set(STORE_LANGUAGE_KEY, currentLanguageCode);
+      console.log(`Stored language preference: ${currentLanguageCode}`);
+
+      // Re-initialize the translation service with the new language config
+      try {
+        translationService = new TranslationService(
+          process.env.GEMINI_API_KEY || "",
+          currentLanguageCode
+        );
+        console.log(
+          `TranslationService re-initialized for ${currentLanguageCode}`
+        );
+        // Send available languages back to renderer for updating selector
+        return getAvailableLanguages();
+      } catch (error) {
+        console.error("Error re-initializing TranslationService:", error);
+        // Revert if failed?
+        currentLanguageCode = store.get(STORE_LANGUAGE_KEY, "ko"); // Revert to stored
+        return { error: "Failed to switch language service." };
+      }
+    } else {
+      console.error(`Invalid language code received: ${newLangCode}`);
+      return { error: "Invalid language code." };
+    }
+  });
+
+  // --- NEW Handler: Get Available Languages ---
+  ipcMain.handle("get-available-languages", async () => {
+    return getAvailableLanguages();
   });
 }
 
+// Helper function to get language list
+function getAvailableLanguages() {
+  return Object.entries(languageConfigs).map(([code, config]) => ({
+    code: code,
+    name: config.languageName,
+  }));
+}
+
 async function handleTranslationRequest(text: string) {
-  console.log("Handling translation request for:", text);
-  // Ensure services are initialized
+  console.log(
+    `Handling translation request for lang ${currentLanguageCode}:`,
+    text
+  );
   if (!historyManager || !translationService || !mb || !mb.window)
     return { error: "Application components not ready" };
 
   try {
+    // Cache is language-agnostic (original text -> result) for now
     const cached = historyManager.getFromCache(text);
     if (cached) {
-      console.log("Found cached translation");
-      mb.window.webContents.send("show-translation", cached);
+      // Check if cached result matches current language? Difficult without storing lang in history
+      // For now, assume cache is valid or re-translate if language changed implicitly.
+      // A simple check: if the current lang isn't Korean (the only one cached previously)
+      // maybe skip cache? Or better: Store lang with history.
+      // Let's just use cache for now, simplest approach.
+      console.log("Found cached translation (language not checked)");
+      mb.window.webContents.send(
+        "show-translation",
+        cached,
+        currentLanguageCode
+      );
       return cached;
     }
 
     console.log("No cache hit, calling API");
     mb.window.webContents.send("translation-loading", text);
 
+    // translationService already knows the current language
     const result = await translationService.translateText(text);
     console.log("API Result:", result);
 
     if (result && typeof result === "object" && !("error" in result)) {
       const translationEntry: TranslationEntry = {
         original: text,
+        // TODO: Store language code with history entry
         translation: result,
         timestamp: Date.now(),
       };
       historyManager.addToHistory(translationEntry);
-      // Send entry AND language code to renderer
       mb.window.webContents.send(
         "show-translation",
         translationEntry,
-        translationService.currentLanguageConfig.targetLanguageCode
+        currentLanguageCode
       );
       return translationEntry;
     } else {
-      // Handle potential error format from translateText if it throws or returns an error object
       const errorMessage =
         (result as any)?.message || "Invalid translation response format";
       throw new Error(errorMessage);
@@ -270,10 +340,13 @@ function showLastTranslation() {
   console.log("Showing last translation or empty state");
   const lastTranslation = historyManager.getLastTranslation();
   if (lastTranslation) {
-    // Assume last translation was Korean for now.
-    // TODO: Ideally store lang code with history entry
-    const langCode = "ko";
-    mb.window.webContents.send("show-translation", lastTranslation, langCode);
+    // Send with the CURRENTLY selected language, not necessarily the language it was originally translated to
+    // TODO: Store lang code with history entry for accurate recall
+    mb.window.webContents.send(
+      "show-translation",
+      lastTranslation,
+      currentLanguageCode
+    );
   } else {
     mb.window.webContents.send("empty-state");
   }

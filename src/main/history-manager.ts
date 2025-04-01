@@ -14,6 +14,7 @@ export type GroupedHistory = Record<string, TranslationEntry[]>;
 // Define the schema for the electron-store
 export type StoreSchema = {
   translationHistory: TranslationEntry[];
+  selectedLanguageCode?: string; // Add optional language preference
 };
 
 export class HistoryManager {

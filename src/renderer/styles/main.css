@@ -115,6 +115,16 @@ table {
   color: var(--accent-color);
 }
 
+.header .controls select {
+  font-size: 12px;
+  margin-left: 8px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--section-background); /* Match section background */
+  color: var(--text-color); /* Use primary text color */
+}
+
 .content-area {
   flex-grow: 1;
   overflow-y: auto;
