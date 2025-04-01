@@ -117,8 +117,8 @@ function createMenubar() {
     });
 
     mb.on("focus-lost", () => {
-      console.log("Menubar focus lost.");
-      // mb.hideWindow(); // Keep hidden on focus lost
+      console.log("Menubar focus lost. Hiding window.");
+      mb.hideWindow();
     });
 
     mb.on("error", (error) => {

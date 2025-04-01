@@ -1,4 +1,4 @@
-# Technical Specification: Korean Translation Menu Bar Application
+# Technical Specification: Kaebi (short for Dokkebi) Korean Translation Menu Bar Application
 
 ## 1. Project Overview
 

@@ -65,6 +65,8 @@ const emptyHistoryMessage = document.getElementById(
   "emptyHistoryMessage"
 ) as HTMLParagraphElement;
 
+const customTooltip = document.getElementById("customTooltip") as HTMLElement;
+
 // --- State Management ---
 let currentView: "translation" | "history" | "empty" = "empty";
 
@@ -130,17 +132,28 @@ function showError(originalInput: string, errorMsg: string) {
   errorDisplay.classList.remove("hidden");
 }
 
+// Helper function to escape HTML for safe attribute embedding
+function escapeHtml(unsafe: string | undefined | null): string {
+  if (!unsafe) return "";
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function showTranslation(entry: TranslationEntry) {
   console.log(
     "[Renderer] showTranslation called with entry:",
     JSON.stringify(entry, null, 2)
-  ); // Log the full entry
+  );
   showView("translationContainer");
   loadingIndicator.classList.add("hidden");
   errorDisplay.classList.add("hidden");
   translationResult.classList.remove("hidden");
 
-  // Basic validation
+  // Validations (remain the same)
   if (!entry || typeof entry !== "object") {
     console.error(
       "[Renderer] Invalid entry object received in showTranslation."
@@ -160,7 +173,7 @@ function showTranslation(entry: TranslationEntry) {
     return;
   }
 
-  const translationData = entry.translation; // This is the nested JSON from Gemini
+  const translationData = entry.translation;
   console.log(
     "[Renderer] Extracted translationData:",
     JSON.stringify(translationData, null, 2)
@@ -170,14 +183,85 @@ function showTranslation(entry: TranslationEntry) {
   console.log(`[Renderer] Setting originalText to: "${entry.original}"`);
   originalText.textContent = entry.original;
 
-  // --- Display Main Translation ---
+  // --- Display Main Translation (with custom hover tooltips) ---
   const mainTranslation = translationData.translation;
-  if (mainTranslation && typeof mainTranslation === "object") {
+  const breakdownWords = translationData.breakdown?.words || [];
+  translatedText.innerHTML = ""; // Clear previous content
+
+  if (
+    mainTranslation &&
+    typeof mainTranslation === "object" &&
+    mainTranslation.text
+  ) {
     console.log(
       "[Renderer] Updating main translation section:",
       mainTranslation
     );
-    translatedText.textContent = mainTranslation.text || "N/A";
+
+    // --- Create hoverable words ---
+    let currentText = mainTranslation.text;
+    const styledParts: (string | Node)[] = [];
+    let lastIndex = 0;
+
+    // Sort breakdown words by appearance in the text (simple first-occurrence sort)
+    // This is heuristic and might fail for complex sentences or repeated words.
+    // A more robust solution might involve character indexing from the API if available.
+    const sortedBreakdown = [...breakdownWords].sort((a, b) => {
+      const indexA = currentText.indexOf(a.korean);
+      const indexB = currentText.indexOf(b.korean);
+      // Handle words not found
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+
+    sortedBreakdown.forEach((wordData) => {
+      const wordIndex = currentText.indexOf(wordData.korean, lastIndex); // Find word starting from last index
+      if (wordIndex !== -1) {
+        // Add preceding text (if any)
+        if (wordIndex > lastIndex) {
+          styledParts.push(
+            document.createTextNode(currentText.substring(lastIndex, wordIndex))
+          );
+        }
+
+        // Create the hoverable span
+        const span = document.createElement("span");
+        span.textContent = wordData.korean;
+        span.classList.add("hover-word"); // Add class for potential styling
+
+        // Store data in data-* attributes
+        span.dataset.original = wordData.original;
+        span.dataset.type = wordData.partOfSpeech;
+        span.dataset.pronunciation = wordData.pronunciation;
+        if (wordData.notes) {
+          span.dataset.notes = wordData.notes;
+        }
+
+        // Add event listeners for custom tooltip
+        span.addEventListener("mouseenter", handleWordMouseEnter);
+        span.addEventListener("mouseleave", handleWordMouseLeave);
+
+        styledParts.push(span);
+        lastIndex = wordIndex + wordData.korean.length;
+      }
+    });
+
+    // Add any remaining text after the last found word
+    if (lastIndex < currentText.length) {
+      styledParts.push(
+        document.createTextNode(currentText.substring(lastIndex))
+      );
+    }
+
+    // Append all parts to the translatedText element
+    styledParts.forEach((part) =>
+      translatedText.appendChild(
+        typeof part === "string" ? document.createTextNode(part) : part
+      )
+    );
+
+    // Update pronunciation and formality
     translatedPronunciation.textContent = mainTranslation.pronunciation || "";
     translationFormality.textContent = mainTranslation.formality || "unknown";
     (
@@ -185,7 +269,7 @@ function showTranslation(entry: TranslationEntry) {
     )?.classList.remove("hidden");
   } else {
     console.error(
-      "[Renderer] Missing or invalid main translation block:",
+      "[Renderer] Missing or invalid main translation block or text:",
       mainTranslation
     );
     translatedText.textContent = "Error: Missing translation block";
@@ -196,53 +280,27 @@ function showTranslation(entry: TranslationEntry) {
     )?.classList.add("hidden");
   }
 
-  // --- Display Word Breakdown ---
+  // --- Hide Details Sections By Default ---
   const breakdownSection = wordBreakdown.closest(
     "details"
   ) as HTMLDetailsElement;
-  wordBreakdown.innerHTML = ""; // Clear previous
-  if (
-    translationData.breakdown?.words &&
-    Array.isArray(translationData.breakdown.words) &&
-    translationData.breakdown.words.length > 0
-  ) {
-    console.log(
-      "[Renderer] Updating word breakdown section with",
-      translationData.breakdown.words.length,
-      "words."
-    );
-    const table = document.createElement("table");
-    table.innerHTML = `<thead><tr><th>Original</th><th>Korean</th><th>Pronunciation</th><th>Type</th><th>Notes</th></tr></thead>`;
-    const tbody = document.createElement("tbody");
-    translationData.breakdown.words.forEach((word: any) => {
-      const row = tbody.insertRow();
-      const safeGet = (obj: any, key: string) => obj?.[key] || "";
-      row.innerHTML = `
-                <td>${safeGet(word, "original")}</td>
-                <td>${safeGet(word, "korean")}</td>
-                <td>${safeGet(word, "pronunciation")}</td>
-                <td>${safeGet(word, "partOfSpeech")}</td>
-                <td>${safeGet(word, "notes")}</td>
-            `;
-    });
-    table.appendChild(tbody);
-    wordBreakdown.appendChild(table);
-    breakdownSection?.classList.remove("hidden");
-  } else {
-    console.log("[Renderer] No word breakdown data found or empty array.");
-    breakdownSection?.classList.add("hidden"); // Hide section if no data
-  }
-
-  // --- Display Tips ---
   const tipsSection = tipsList.closest("details") as HTMLDetailsElement;
-  tipsList.innerHTML = ""; // Clear previous
+  const alternativesSection = alternativesList.closest(
+    "details"
+  ) as HTMLDetailsElement;
+
+  breakdownSection?.classList.add("hidden"); // Hide word breakdown section
+  // We might still populate tips/alternatives if data exists, but keep sections hidden initially
+
+  // Populate Tips (keep hidden)
+  tipsList.innerHTML = "";
   if (
     translationData.tips &&
     Array.isArray(translationData.tips) &&
     translationData.tips.length > 0
   ) {
     console.log(
-      "[Renderer] Updating tips section with",
+      "[Renderer] Populating hidden tips section with",
       translationData.tips.length,
       "tips."
     );
@@ -251,24 +309,22 @@ function showTranslation(entry: TranslationEntry) {
       li.textContent = tip;
       tipsList.appendChild(li);
     });
-    tipsSection?.classList.remove("hidden");
+    tipsSection?.classList.remove("hidden"); // Remove hidden if there are tips
   } else {
-    console.log("[Renderer] No tips data found or empty array.");
-    tipsSection?.classList.add("hidden"); // Hide section if no data
+    console.log("[Renderer] No tips data found.");
+    tipsSection?.classList.add("hidden");
   }
+  if (tipsSection) tipsSection.open = false; // Ensure it's closed
 
-  // --- Display Alternatives ---
-  const alternativesSection = alternativesList.closest(
-    "details"
-  ) as HTMLDetailsElement;
-  alternativesList.innerHTML = ""; // Clear previous
+  // Populate Alternatives (keep hidden)
+  alternativesList.innerHTML = "";
   if (
     translationData.alternatives &&
     Array.isArray(translationData.alternatives) &&
     translationData.alternatives.length > 0
   ) {
     console.log(
-      "[Renderer] Updating alternatives section with",
+      "[Renderer] Populating hidden alternatives section with",
       translationData.alternatives.length,
       "alternatives."
     );
@@ -285,17 +341,65 @@ function showTranslation(entry: TranslationEntry) {
             `;
       alternativesList.appendChild(div);
     });
-    alternativesSection?.classList.remove("hidden");
+    alternativesSection?.classList.remove("hidden"); // Remove hidden if there are alternatives
   } else {
-    console.log("[Renderer] No alternatives data found or empty array.");
-    alternativesSection?.classList.add("hidden"); // Hide section if no data
+    console.log("[Renderer] No alternatives data found.");
+    alternativesSection?.classList.add("hidden");
   }
+  if (alternativesSection) alternativesSection.open = false; // Ensure it's closed
 
-  // Close details sections by default when showing a new translation
-  document.querySelectorAll("#translationResult details").forEach((details) => {
-    (details as HTMLDetailsElement).open = false;
-  });
   console.log("[Renderer] showTranslation finished.");
+}
+
+// --- Custom Tooltip Event Handlers ---
+function handleWordMouseEnter(event: MouseEvent) {
+  const span = event.target as HTMLElement;
+  const { original, type, pronunciation, notes } = span.dataset;
+
+  if (!original || !type || !pronunciation) return; // Don't show if data is missing
+
+  // Format tooltip content
+  let tooltipHtml = '<div class="tooltip-content">';
+  tooltipHtml += `<p><strong>Original:</strong> ${escapeHtml(original)}</p>`;
+  tooltipHtml += `<p><strong>Type:</strong> ${escapeHtml(type)}</p>`;
+  tooltipHtml += `<p><strong>Pronunciation:</strong> ${escapeHtml(
+    pronunciation
+  )}</p>`;
+  if (notes) {
+    tooltipHtml += `<p><strong>Notes:</strong> ${escapeHtml(notes)}</p>`;
+  }
+  tooltipHtml += "</div>";
+
+  customTooltip.innerHTML = tooltipHtml;
+
+  // Position the tooltip
+  const rect = span.getBoundingClientRect();
+  const tooltipRect = customTooltip.getBoundingClientRect(); // Get tooltip dimensions
+  const scrollY = window.scrollY; // Account for page scroll if any
+  const scrollX = window.scrollX;
+
+  // Position below the word, centered horizontally
+  let top = rect.bottom + scrollY + 5; // 5px gap below
+  let left = rect.left + scrollX + rect.width / 2 - tooltipRect.width / 2;
+
+  // Adjust if tooltip goes off-screen horizontally
+  if (left < scrollX + 5) {
+    left = scrollX + 5; // Minimum 5px from left edge
+  }
+  const maxLeft = document.body.clientWidth - tooltipRect.width - 5;
+  if (left > maxLeft) {
+    left = maxLeft;
+  }
+  // Adjust vertically? Maybe not necessary for this app height
+
+  customTooltip.style.top = `${top}px`;
+  customTooltip.style.left = `${left}px`;
+  customTooltip.classList.remove("hidden");
+}
+
+function handleWordMouseLeave() {
+  customTooltip.classList.add("hidden");
+  customTooltip.innerHTML = ""; // Clear content
 }
 
 function showEmpty() {

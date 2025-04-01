@@ -371,3 +371,71 @@ details[open].history-date-section summary {
 .content-area::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* Add styles for hoverable words */
+.hover-word {
+  cursor: help;
+  border-bottom: 1px dashed var(--accent-color);
+  position: relative;
+}
+
+/* Custom Tooltip Styles */
+.tooltip {
+  position: absolute; /* Position relative to the nearest positioned ancestor (or body) */
+  background-color: rgba(0, 0, 0, 0.85); /* Dark semi-transparent background */
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 250px; /* Limit width */
+  z-index: 1000; /* Ensure it's on top */
+  pointer-events: none; /* Prevent tooltip from interfering with mouse events */
+  white-space: pre-wrap; /* Respect newlines in the text */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip.hidden {
+  display: none;
+}
+
+/* Styling for content within the tooltip */
+.tooltip-content p {
+  margin: 0 0 4px 0;
+}
+.tooltip-content p:last-child {
+  margin-bottom: 0;
+}
+.tooltip-content strong {
+  margin-right: 4px;
+  color: #aaa; /* Slightly lighter label */
+}
+
+/* Hide the details sections initially */
+/* We rely on the JS logic to add/remove hidden class if content exists */
+details.section {
+  /* Keep other detail styles, just ensure they start hidden */
+  /* The JS will remove .hidden if they have content */
+}
+
+/* Styling for the content within hidden sections (ensure padding etc. is okay) */
+.breakdown-content table,
+.tips-content,
+.alternatives-content {
+  /* Existing styles are likely fine */
+  /* Add margin-top if needed when revealed */
+}
+
+/* Consider adding icons/buttons later to reveal tips/alternatives */
+/* Example placeholder */
+.reveal-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1em;
+  margin-left: 5px;
+  color: var(--secondary-text-color);
+}
+.reveal-button:hover {
+  color: var(--accent-color);
+}
