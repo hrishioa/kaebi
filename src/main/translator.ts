@@ -1,12 +1,8 @@
-import {
-  GoogleGenerativeAI,
-  GenerateContentResult,
-  ChatSession,
-  Part,
-} from "@google/generative-ai";
+import { GoogleGenerativeAI, ChatSession, Part } from "@google/generative-ai";
+import { languageConfigs, LanguageConfig } from "./language-configs";
 
-// Define the structure for a translation entry
-interface TranslationResponse {
+// --- Define a GENERALIZED Response Structure ---
+interface GeneralTranslationResponse {
   translation: {
     text: string;
     pronunciation: string;
@@ -15,7 +11,7 @@ interface TranslationResponse {
   breakdown: {
     words: {
       original: string;
-      korean: string;
+      targetWord: string; // Generalized from 'korean'
       pronunciation: string;
       partOfSpeech: string;
       notes?: string;
@@ -28,185 +24,6 @@ interface TranslationResponse {
     context: string;
   }[];
 }
-
-// --- Configuration for Different Languages ---
-interface LanguageConfig {
-  systemPrompt: string;
-  fewShotHistory: { role: string; parts: Part[] }[];
-}
-
-// --- Korean Configuration (Extracted from example_call.ts) ---
-const koreanConfig: LanguageConfig = {
-  systemPrompt:
-    'You are a Korean language expert. Translate the provided text into natural Korean and break it down for language learners. Focus on brevity while maintaining educational value.\n\n## Response Format\n\nRespond ONLY with valid JSON following this structure:\n\n```json\n{\n  "translation": {\n    "text": "Korean translation",\n    "pronunciation": "Romanized pronunciation",\n    "formality": "formal/polite/casual/intimate"\n  },\n  "breakdown": {\n    "words": [\n      {\n        "original": "Original word",\n        "korean": "Korean word",\n        "pronunciation": "Romanized pronunciation",\n        "partOfSpeech": "noun/verb/etc.",\n        "notes": "Brief usage notes"\n      }\n      // Add entry for each key word\n    ]\n  },\n  "tips": [\n    "Cultural insight or usage tip",\n    "Pronunciation or context advice"\n    // 2-3 brief tips maximum\n  ],\n  "alternatives": [\n    {\n      "text": "Alternative expression",\n      "pronunciation": "Romanized pronunciation",\n      "context": "When to use this alternative"\n    }\n    // 1-2 useful alternatives maximum\n  ]\n}\n```\n\n## Guidelines\n\n- Keep all explanations concise (1-2 sentences max)\n- Use standard romanization\n- Focus on practical usage rather than linguistic theory\n- Prioritize common vocabulary and expressions\n- Include only the most essential cultural context\n- Default to polite form (-요/-습니다) unless context suggests otherwise',
-  fewShotHistory: [
-    {
-      role: "user",
-      parts: [{ text: "hey what are you up to? wanna grab coffee later?" }],
-    },
-    {
-      role: "model",
-      parts: [
-        {
-          text: JSON.stringify(
-            {
-              translation: {
-                text: "안녕, 뭐하고 있어? 나중에 커피 마실래?",
-                pronunciation:
-                  "Annyeong, mwohago isseo? Najunge keopi masillae?",
-                formality: "casual",
-              },
-              breakdown: {
-                words: [
-                  {
-                    original: "hey",
-                    korean: "안녕",
-                    pronunciation: "annyeong",
-                    partOfSpeech: "interjection",
-                    notes: "Informal greeting among friends.",
-                  },
-                  {
-                    original: "what are you up to",
-                    korean: "뭐하고 있어?",
-                    pronunciation: "mwohago isseo?",
-                    partOfSpeech: "phrase",
-                    notes: "Informal way to ask what someone is doing.",
-                  },
-                  {
-                    original: "wanna",
-                    korean: "~할래?",
-                    pronunciation: "~hallae?",
-                    partOfSpeech: "verb phrase",
-                    notes: "Casual suggestion or invitation ending.",
-                  },
-                  {
-                    original: "grab coffee",
-                    korean: "커피 마시다",
-                    pronunciation: "keopi masida",
-                    partOfSpeech: "verb phrase",
-                    notes: "Common expression meaning to drink coffee.",
-                  },
-                  {
-                    original: "later",
-                    korean: "나중에",
-                    pronunciation: "najunge",
-                    partOfSpeech: "adverb",
-                    notes: "Refers to a time later than now.",
-                  },
-                ],
-              },
-              tips: [
-                "'안녕' is typically used among peers, not with superiors.",
-                "Use '~할래?' only with close friends for casual suggestions.",
-              ],
-              alternatives: [
-                {
-                  text: "뭐해? 커피 마실래?",
-                  pronunciation: "Mwohae? Keopi masillae?",
-                  context: "Even more casual, for very close friends.",
-                },
-              ],
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    },
-    {
-      role: "user",
-      parts: [
-        { text: "I believe we all have the power to make our own destiny." },
-      ],
-    },
-    {
-      role: "model",
-      parts: [
-        {
-          text: JSON.stringify(
-            {
-              translation: {
-                text: "저는 우리 모두가 자신의 운명을 만들 힘이 있다고 믿습니다.",
-                pronunciation:
-                  "Jeoneun uri modu-ga jasineui unmyeong-eul mandeul him-i issdago midseumnida.",
-                formality: "formal",
-              },
-              breakdown: {
-                words: [
-                  {
-                    original: "I",
-                    korean: "저",
-                    pronunciation: "jeo",
-                    partOfSpeech: "pronoun",
-                    notes: "Formal 'I', used in respectful situations.",
-                  },
-                  {
-                    original: "believe",
-                    korean: "믿습니다",
-                    pronunciation: "midseumnida",
-                    partOfSpeech: "verb",
-                    notes: "Formal form of 'to believe'.",
-                  },
-                  {
-                    original: "we all",
-                    korean: "우리 모두가",
-                    pronunciation: "uri modu-ga",
-                    partOfSpeech: "pronoun",
-                    notes: "Inclusive pronoun meaning 'all of us'.",
-                  },
-                  {
-                    original: "have the power",
-                    korean: "힘이 있다",
-                    pronunciation: "him-i itda",
-                    partOfSpeech: "verb",
-                    notes: "Phrase meaning 'to have power'.",
-                  },
-                  {
-                    original: "to make",
-                    korean: "만들",
-                    pronunciation: "mandeul",
-                    partOfSpeech: "verb",
-                    notes: "Root form of 'to make'.",
-                  },
-                  {
-                    original: "our own",
-                    korean: "자신의",
-                    pronunciation: "jasin-ui",
-                    partOfSpeech: "adjective",
-                    notes: "Referring to one's own.",
-                  },
-                  {
-                    original: "destiny",
-                    korean: "운명",
-                    pronunciation: "unmyeong",
-                    partOfSpeech: "noun",
-                    notes: "Fate or destiny.",
-                  },
-                ],
-              },
-              tips: [
-                "In Korean, '믿다' can also mean 'to trust' depending on context.",
-                "When expressing belief formally, it's polite to use '믿습니다'.",
-              ],
-              alternatives: [
-                {
-                  text: "저는 우리가 우리의 인생을 스스로 개척할 수 있다고 믿습니다.",
-                  pronunciation:
-                    "Jeoneun uriga uriui insaeng-eul seuseuro gaecheokhal su itda-go midseumnida.",
-                  context:
-                    "Use this to emphasize crafting one's life actively.",
-                },
-              ],
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    },
-  ],
-};
-// --- End Korean Configuration ---
 
 export class TranslationService {
   private genAI: GoogleGenerativeAI;
@@ -225,11 +42,11 @@ export class TranslationService {
           properties: {
             text: {
               type: "string",
-              description: "The complete Korean translation",
+              description: "The complete translation",
             },
             pronunciation: {
               type: "string",
-              description: "Romanized pronunciation of the translation",
+              description: "Romanized pronunciation",
             },
             formality: {
               type: "string",
@@ -249,11 +66,11 @@ export class TranslationService {
                 properties: {
                   original: {
                     type: "string",
-                    description: "Original word from source text",
+                    description: "Original word",
                   },
-                  korean: {
+                  targetWord: {
                     type: "string",
-                    description: "Korean translation of this word",
+                    description: "Translated word in target language",
                   },
                   pronunciation: {
                     type: "string",
@@ -265,12 +82,12 @@ export class TranslationService {
                   },
                   notes: {
                     type: "string",
-                    description: "Brief notes about usage",
+                    description: "Usage notes",
                   },
                 },
                 required: [
                   "original",
-                  "korean",
+                  "targetWord",
                   "pronunciation",
                   "partOfSpeech",
                 ],
@@ -310,26 +127,39 @@ export class TranslationService {
   };
   private currentLanguageConfig: LanguageConfig;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, targetLanguageCode: string = "ko") {
     if (!apiKey) {
+      throw new Error("API key missing.");
+    }
+    // --- Select language config based on code ---
+    const selectedConfig = languageConfigs[targetLanguageCode];
+    if (!selectedConfig) {
       throw new Error(
-        "Gemini API key is missing. Please provide it via GEMINI_API_KEY environment variable."
+        `Unsupported language code: ${targetLanguageCode}. Available: ${Object.keys(
+          languageConfigs
+        ).join(", ")}`
       );
     }
+    this.currentLanguageConfig = selectedConfig;
+    console.log(
+      `Translator initialized for language: ${this.currentLanguageConfig.languageName}`
+    );
+
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.currentLanguageConfig = koreanConfig;
     this.model = this.genAI.getGenerativeModel({
       model: "gemini-2.0-flash",
       systemInstruction: this.currentLanguageConfig.systemPrompt,
     });
   }
 
-  async translateText(text: string): Promise<TranslationResponse> {
+  async translateText(text: string): Promise<GeneralTranslationResponse> {
     try {
       console.log(
         `Starting chat with model: ${
           this.model.model
-        } for text: "${text.substring(0, 50)}..."`
+        } for text: "${text.substring(0, 50)}..." using ${
+          this.currentLanguageConfig.languageName
+        } config.`
       );
       const chatSession: ChatSession = this.model.startChat({
         generationConfig: this.generationConfig,
@@ -347,7 +177,7 @@ export class TranslationService {
       );
 
       try {
-        const jsonData: TranslationResponse = JSON.parse(responseText);
+        const jsonData: GeneralTranslationResponse = JSON.parse(responseText);
 
         if (!jsonData.translation || !jsonData.breakdown) {
           console.error(

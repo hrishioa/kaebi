@@ -535,3 +535,27 @@ details.section {
 .reveal-button:hover {
   color: var(--accent-color);
 }
+
+/* Gowun Dodum Font Class */
+.gowun-dodum-regular {
+  font-family: "Gowun Dodum", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Apply Korean font conditionally */
+/* Add a class like 'lang-ko' to the .container or body */
+.lang-ko .translation-text-section h2, /* Main translation */
+.lang-ko .hover-word, /* Hover words */
+.lang-ko .tips-content, /* Tips */
+.lang-ko .alternatives-content p strong, /* Alternative text */
+.lang-ko .history-original /* History view original (if needed?) - might need adjustment */ {
+  font-family: "Gowun Dodum", sans-serif;
+}
+
+/* Ensure pronunciation still uses default system font */
+.lang-ko .translation-text-section .pronunciation {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  font-style: italic; /* Keep italic */
+}

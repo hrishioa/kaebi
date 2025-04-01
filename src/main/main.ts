@@ -210,7 +210,10 @@ function setupIPCHandlers() {
   ipcMain.handle("load-translation", async (_, entry: TranslationEntry) => {
     console.log("IPC: load-translation received", entry);
     if (!mb || !mb.window) return;
-    mb.window.webContents.send("show-translation", entry);
+    // Assume loaded history is Korean for now
+    // TODO: Store lang code with history entry
+    const langCode = "ko";
+    mb.window.webContents.send("show-translation", entry, langCode);
   });
 }
 
@@ -241,7 +244,12 @@ async function handleTranslationRequest(text: string) {
         timestamp: Date.now(),
       };
       historyManager.addToHistory(translationEntry);
-      mb.window.webContents.send("show-translation", translationEntry);
+      // Send entry AND language code to renderer
+      mb.window.webContents.send(
+        "show-translation",
+        translationEntry,
+        translationService.currentLanguageConfig.targetLanguageCode
+      );
       return translationEntry;
     } else {
       // Handle potential error format from translateText if it throws or returns an error object
@@ -258,12 +266,14 @@ async function handleTranslationRequest(text: string) {
 }
 
 function showLastTranslation() {
-  // Ensure services are initialized
   if (!historyManager || !mb || !mb.window) return;
   console.log("Showing last translation or empty state");
   const lastTranslation = historyManager.getLastTranslation();
   if (lastTranslation) {
-    mb.window.webContents.send("show-translation", lastTranslation);
+    // Assume last translation was Korean for now.
+    // TODO: Ideally store lang code with history entry
+    const langCode = "ko";
+    mb.window.webContents.send("show-translation", lastTranslation, langCode);
   } else {
     mb.window.webContents.send("empty-state");
   }

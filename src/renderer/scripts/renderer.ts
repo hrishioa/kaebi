@@ -14,6 +14,7 @@ declare global {
 }
 
 // --- DOM Elements ---
+const container = document.querySelector(".container") as HTMLElement; // Get main container
 const viewTitle = document.getElementById("viewTitle") as HTMLSpanElement;
 const historyBtn = document.getElementById("historyBtn") as HTMLButtonElement;
 const clearHistoryBtn = document.getElementById(
@@ -183,7 +184,18 @@ function escapeHtml(unsafe: string | undefined | null): string {
     .replace(/'/g, "&#039;");
 }
 
-function showTranslation(entry: TranslationEntry) {
+function showTranslation(entry: TranslationEntry, langCode: string) {
+  console.log(`[Renderer] showTranslation called for lang: ${langCode}`);
+
+  // --- Apply Language Class ---
+  // Remove previous lang classes
+  container.className = container.className
+    .replace(/\blang-[a-z]{2}\b/g, "")
+    .trim();
+  // Add current lang class
+  container.classList.add(`lang-${langCode}`);
+  console.log(`[Renderer] Applied lang class: lang-${langCode}`);
+
   stopLoadingTimer(); // Stop timer on success
   console.log(
     "[Renderer] showTranslation called with entry:",
@@ -244,32 +256,29 @@ function showTranslation(entry: TranslationEntry) {
     const styledParts: (string | Node)[] = [];
     let lastIndex = 0;
 
-    // Sort breakdown words by appearance in the text (simple first-occurrence sort)
-    // This is heuristic and might fail for complex sentences or repeated words.
-    // A more robust solution might involve character indexing from the API if available.
     const sortedBreakdown = [...breakdownWords].sort((a, b) => {
-      const indexA = currentText.indexOf(a.korean);
-      const indexB = currentText.indexOf(b.korean);
-      // Handle words not found
+      // Use targetWord for sorting based on the actual translated word
+      const indexA = currentText.indexOf(a.targetWord);
+      const indexB = currentText.indexOf(b.targetWord);
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;
       return indexA - indexB;
     });
 
     sortedBreakdown.forEach((wordData) => {
-      const wordIndex = currentText.indexOf(wordData.korean, lastIndex); // Find word starting from last index
+      // Find based on targetWord
+      const wordIndex = currentText.indexOf(wordData.targetWord, lastIndex);
       if (wordIndex !== -1) {
-        // Add preceding text (if any)
         if (wordIndex > lastIndex) {
           styledParts.push(
             document.createTextNode(currentText.substring(lastIndex, wordIndex))
           );
         }
 
-        // Create the hoverable span
         const span = document.createElement("span");
-        span.textContent = wordData.korean;
-        span.classList.add("hover-word"); // Add class for potential styling
+        // Display targetWord
+        span.textContent = wordData.targetWord;
+        span.classList.add("hover-word");
 
         // Store data in data-* attributes
         span.dataset.original = wordData.original;
@@ -278,13 +287,15 @@ function showTranslation(entry: TranslationEntry) {
         if (wordData.notes) {
           span.dataset.notes = wordData.notes;
         }
+        // Optionally store targetWord if needed for tooltip, but tooltip usually shows original
+        // span.dataset.targetWord = wordData.targetWord;
 
-        // Add event listeners for custom tooltip
         span.addEventListener("mouseenter", handleWordMouseEnter);
         span.addEventListener("mouseleave", handleWordMouseLeave);
 
         styledParts.push(span);
-        lastIndex = wordIndex + wordData.korean.length;
+        // Advance index based on targetWord length
+        lastIndex = wordIndex + wordData.targetWord.length;
       }
     });
 
@@ -585,12 +596,12 @@ document.addEventListener("DOMContentLoaded", () => {
     showLoading(originalText);
   });
 
-  window.api.onShowTranslation((result: TranslationEntry) => {
+  // Update listener to accept langCode
+  window.api.onShowTranslation((result: TranslationEntry, langCode: string) => {
     console.log(
-      "[Renderer IPC] Received onShowTranslation event with result:",
-      JSON.stringify(result, null, 2)
+      `[Renderer IPC] Received onShowTranslation event for lang: ${langCode}`
     );
-    showTranslation(result);
+    showTranslation(result, langCode);
   });
 
   window.api.onTranslationError((originalText: string, error: string) => {
