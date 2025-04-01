@@ -83,6 +83,7 @@ const languageSelector = document.getElementById(
 // --- State Management ---
 let currentView: "translation" | "history" | "empty" = "empty";
 let currentLanguageCode: string = "ko"; // Track current language in renderer too
+let lastOriginalInput: string | null = null; // Variable to store the last input
 
 // --- State for Loading Timer ---
 let loadingTimerInterval: number | null = null;
@@ -129,6 +130,7 @@ function showView(
 // --- UI Update Functions ---
 function showLoading(originalInput: string) {
   console.log("Showing loading indicator for:", originalInput);
+  lastOriginalInput = originalInput; // Store original input when loading starts
   showView("translationContainer");
 
   // Keep original text visible
@@ -385,6 +387,7 @@ function showTranslation(entry: TranslationEntry, langCode: string) {
   }
 
   console.log("[Renderer] showTranslation finished.");
+  lastOriginalInput = entry.original; // Store original input when translation shown
 }
 
 // --- Custom Tooltip Event Handlers ---
@@ -618,10 +621,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log(`Language selection changed to: ${newLangCode}`);
     if (newLangCode !== currentLanguageCode) {
       try {
-        // Tell main process to change language and re-init service
         const result = await window.api.setLanguage(newLangCode);
 
-        // Explicit type guard to check for error property
         if (
           result &&
           typeof result === "object" &&
@@ -629,12 +630,23 @@ document.addEventListener("DOMContentLoaded", async () => {
           result.error
         ) {
           console.error("Error setting language:", result.error);
-          languageSelector.value = currentLanguageCode;
+          languageSelector.value = currentLanguageCode; // Revert selector
         } else {
           // Success!
           currentLanguageCode = newLangCode;
           console.log(`Language successfully set to ${newLangCode}`);
-          showEmpty();
+
+          // --- Trigger Re-translation (Forcefully) ---
+          if (lastOriginalInput) {
+            console.log(
+              `Forcing re-translation of last input: "${lastOriginalInput}"`
+            );
+            // Pass force option to bypass cache
+            window.api.translate(lastOriginalInput, { force: true });
+          } else {
+            showEmpty();
+          }
+          // ----------------------------------------
         }
       } catch (error) {
         console.error("IPC Error setting language:", error);

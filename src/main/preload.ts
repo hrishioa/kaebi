@@ -9,7 +9,10 @@ export interface LanguageListItem {
 
 // Define the API structure exposed to the renderer process
 export interface ExposedApi {
-  translate: (text: string) => Promise<TranslationEntry | { error: string }>;
+  translate: (
+    text: string,
+    options?: { force?: boolean }
+  ) => Promise<TranslationEntry | { error: string }>;
   getHistory: () => Promise<GroupedHistory>;
   clearHistory: () => Promise<void>;
   loadTranslation: (entry: TranslationEntry) => Promise<void>; // Added for loading specific history items
@@ -31,7 +34,8 @@ export interface ExposedApi {
 // Expose specific IPC channels to the renderer process
 // for security reasons (avoid exposing ipcRenderer directly)
 contextBridge.exposeInMainWorld("api", {
-  translate: (text: string) => ipcRenderer.invoke("translate-text", text),
+  translate: (text: string, options?: { force?: boolean }) =>
+    ipcRenderer.invoke("translate-text", text, options),
   getHistory: () => ipcRenderer.invoke("get-history"),
   clearHistory: () => ipcRenderer.invoke("clear-history"),
   loadTranslation: (entry: TranslationEntry) =>

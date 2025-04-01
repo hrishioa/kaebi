@@ -199,13 +199,21 @@ app.on("will-quit", () => {
 });
 
 function setupIPCHandlers() {
-  ipcMain.handle("translate-text", async (_, text: string) => {
-    console.log("IPC: translate-text received", text);
-    // Ensure services are available
-    if (!historyManager || !translationService)
-      return { error: "Services not ready" };
-    return handleTranslationRequest(text);
-  });
+  ipcMain.handle(
+    "translate-text",
+    async (_, text: string, options?: { force?: boolean }) => {
+      console.log(
+        `IPC: translate-text received for "${text.substring(
+          0,
+          20
+        )}..." with options:`,
+        options
+      );
+      if (!historyManager || !translationService)
+        return { error: "Services not ready" };
+      return handleTranslationRequest(text, options?.force);
+    }
+  );
 
   ipcMain.handle("get-history", async () => {
     console.log("IPC: get-history received");
@@ -275,33 +283,43 @@ function getAvailableLanguages() {
   }));
 }
 
-async function handleTranslationRequest(text: string) {
+async function handleTranslationRequest(text: string, force?: boolean) {
   console.log(
-    `Handling translation request for lang ${currentLanguageCode}:`,
-    text
+    `Handling translation request for lang ${currentLanguageCode}: "${text.substring(
+      0,
+      20
+    )}...", force: ${force}`
   );
   if (!historyManager || !translationService || !mb || !mb.window)
     return { error: "Application components not ready" };
 
   try {
-    // Cache is language-agnostic (original text -> result) for now
-    const cached = historyManager.getFromCache(text);
+    // --- Cache Check ---
+    let cached: TranslationEntry | null = null;
+    if (!force) {
+      // Only check cache if not forced
+      cached = historyManager.getFromCache(text);
+    }
+
     if (cached) {
-      // Check if cached result matches current language? Difficult without storing lang in history
-      // For now, assume cache is valid or re-translate if language changed implicitly.
-      // A simple check: if the current lang isn't Korean (the only one cached previously)
-      // maybe skip cache? Or better: Store lang with history.
-      // Let's just use cache for now, simplest approach.
       console.log("Found cached translation (language not checked)");
+      // Send cached result with the CURRENT language code
+      // (Still assumes cache is valid across languages, needs improvement later maybe)
       mb.window.webContents.send(
         "show-translation",
         cached,
         currentLanguageCode
       );
       return cached;
+    } else {
+      console.log(
+        force
+          ? "Forcing re-translation (skipping cache check)."
+          : "No cache hit, calling API."
+      );
     }
+    // ------------------
 
-    console.log("No cache hit, calling API");
     mb.window.webContents.send("translation-loading", text);
 
     // translationService already knows the current language
