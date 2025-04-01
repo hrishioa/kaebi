@@ -7,7 +7,6 @@ _(Kaebi is short for Dokkaebi 도깨비, mischievous spirits from Korean folklor
 A sleek macOS menu bar application providing instant translations of your clipboard content to **Korean** or **Malayalam** (extensible with more language packs). Built with Electron, TypeScript, Bun, and the Google Gemini API.
 
 ![App Screenshot Placeholder](assets/screenshot_placeholder.png)
-_(Replace with an actual screenshot)_
 
 ## ✨ Features
 
