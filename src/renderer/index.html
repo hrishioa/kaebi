@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- CSP recommended for Electron apps -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'" />
+    <title>Korean Translator</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/markdown.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <span id="viewTitle">Translation</span>
+        <div class="controls">
+          <button id="historyBtn" title="View History">📜</button>
+          <button id="clearHistoryBtn" class="hidden" title="Clear History">
+            🗑️
+          </button>
+          <button id="backBtn" class="hidden" title="Back to Translation">
+            ⬅️
+          </button>
+        </div>
+      </div>
+
+      <!-- Translation View -->
+      <div id="translationContainer" class="content-area view">
+        <div id="loadingIndicator" class="loading hidden">
+          <div class="spinner"></div>
+          <span>Translating...</span>
+        </div>
+        <div id="errorDisplay" class="error-display hidden">
+          <p><strong>Error:</strong> <span id="errorMessage"></span></p>
+          <p>Original: "<span id="errorOriginalText"></span>"</p>
+        </div>
+        <div id="translationResult" class="translation-result">
+          <div class="section original-text-section">
+            <label>Original:</label>
+            <p id="originalText"></p>
+          </div>
+          <div class="section translation-text-section">
+            <label
+              >Translation (<span id="translationFormality"></span>):</label
+            >
+            <h2 id="translatedText"></h2>
+            <p id="translatedPronunciation" class="pronunciation"></p>
+          </div>
+          <details class="section breakdown-section">
+            <summary>Word Breakdown</summary>
+            <div id="wordBreakdown" class="breakdown-content"></div>
+          </details>
+          <details class="section tips-section">
+            <summary>Tips</summary>
+            <ul id="tipsList" class="tips-content"></ul>
+          </details>
+          <details class="section alternatives-section">
+            <summary>Alternatives</summary>
+            <div id="alternativesList" class="alternatives-content"></div>
+          </details>
+        </div>
+      </div>
+
+      <!-- History View -->
+      <div id="historyContainer" class="content-area view hidden">
+        <div id="historyList" class="history-list"></div>
+        <p id="emptyHistoryMessage" class="empty-history hidden">
+          No translation history yet.
+        </p>
+      </div>
+
+      <!-- Empty State View -->
+      <div id="emptyState" class="content-area view hidden">
+        <p>Copy text to your clipboard.</p>
+        <p>The translation will appear here automatically.</p>
+      </div>
+    </div>
+
+    <!-- Link to the compiled renderer script relative to the source index.html -->
+    <script src="../../dist/renderer/scripts/renderer.js"></script>
+  </body>
+</html>
