@@ -86,6 +86,10 @@ function createMenubar() {
         width: 380,
         height: 500,
         alwaysOnTop: true,
+        vibrancy: "under-window",
+        visualEffectState: "active",
+        backgroundColor: "#00000000",
+        transparent: true,
         webPreferences: {
           // Ensure preload path is correct relative to __dirname (which is in dist/main)
           preload: path.join(__dirname, "preload.js"),

@@ -1,19 +1,43 @@
 /* src/renderer/styles/main.css */
 :root {
-  --background-color: #ffffff;
-  --text-color: #1d1d1f;
-  --secondary-text-color: #515154;
-  --border-color: #d2d2d7;
-  --accent-color: #007aff;
-  --accent-hover-color: #0071e3;
-  --error-color: #ff3b30;
-  --error-background-color: #fff2f2;
-  --loading-color: #8e8e93;
+  /* Dark Mode Palette (Mimicking macOS) */
+  --background-color: transparent; /* Keep transparent for vibrancy */
+  --text-color: rgba(
+    255,
+    255,
+    255,
+    0.85
+  ); /* Primary text (slightly off-white) */
+  --secondary-text-color: rgba(
+    235,
+    235,
+    245,
+    0.6
+  ); /* Secondary text (lighter gray) */
+  --border-color: rgba(255, 255, 255, 0.15); /* Subtle border */
+  --accent-color: #0a84ff; /* Standard blue accent */
+  --accent-hover-color: #3f9dff; /* Lighter blue on hover */
+  --error-color: #ff453a; /* Standard red */
+  --error-background-color: rgba(
+    255,
+    69,
+    58,
+    0.2
+  ); /* Semi-transparent red background */
+  --loading-color: rgba(235, 235, 245, 0.6); /* Same as secondary text */
   --button-text-color: #ffffff;
-  --section-background: #f9f9f9; /* Slightly off-white */
-  --pronunciation-color: #6c757d;
-  --table-header-bg: #f0f0f0;
-  --table-border-color: #e0e0e0;
+  --section-background: rgba(
+    44,
+    44,
+    46,
+    0.75
+  ); /* Dark, semi-transparent sections */
+  --pronunciation-color: rgba(235, 235, 245, 0.6); /* Same as secondary text */
+  --table-header-bg: rgba(58, 58, 60, 0.8);
+  --table-border-color: rgba(84, 84, 88, 0.65);
+  --header-background: rgba(28, 28, 30, 0.7); /* Darker header */
+  --tooltip-background: rgba(58, 58, 60, 0.9); /* Darker tooltip */
+  --tooltip-label-color: rgba(235, 235, 245, 0.5); /* Dimmer tooltip labels */
 }
 
 /* Basic Reset & Font */
@@ -58,7 +82,7 @@ table {
   align-items: center;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--background-color);
+  background-color: var(--header-background);
   flex-shrink: 0;
 }
 
@@ -140,6 +164,8 @@ label {
 .section h4 {
   margin: 0 0 8px 0;
   padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--secondary-text-color);
   /* Keep other h4 styles */
 }
 
@@ -176,11 +202,23 @@ details.hidden {
   color: var(--secondary-text-color);
 }
 
+.translation-text-section {
+  position: relative; /* Needed for absolute positioning of pronunciation copy button */
+}
+
+.translation-wrapper,
+.pronunciation-wrapper {
+  display: flex;
+  align-items: baseline; /* Align text and button nicely */
+  gap: 5px; /* Space between text and button */
+}
+
 .translation-text-section h2 {
   margin-top: 0;
   margin-bottom: 2px;
   font-size: 1.3em;
   font-weight: 600;
+  flex-grow: 1; /* Allow text to take up space */
 }
 
 .translation-text-section .pronunciation {
@@ -188,6 +226,39 @@ details.hidden {
   font-style: italic;
   margin: 0 0 8px 0;
   font-size: 0.9em;
+  flex-grow: 1; /* Allow text to take up space */
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: var(--secondary-text-color);
+  cursor: pointer;
+  padding: 2px; /* Smaller padding */
+  line-height: 1;
+  opacity: 0.6; /* Slightly faded out */
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.copy-btn svg {
+  width: 13px; /* Adjust size */
+  height: 13px;
+  vertical-align: middle; /* Align icon better with text */
+}
+
+.copy-btn:hover {
+  color: var(--accent-color);
+  opacity: 1;
+}
+
+.copy-btn.copied {
+  color: #30d158; /* Standard green check */
+  opacity: 1;
+}
+
+/* Specific adjustment for pronunciation button if needed */
+.copy-btn-pronunciation {
+  /* No specific styles needed now with flexbox */
 }
 
 .breakdown-content table {
@@ -246,6 +317,11 @@ details.hidden {
   height: 100%;
 }
 
+.loading span {
+  font-size: 0.9em;
+  color: var(--secondary-text-color); /* Match color */
+}
+
 .spinner {
   border: 4px solid #f3f3f3; /* Light grey */
   border-top: 4px solid var(--accent-color); /* Blue */
@@ -271,7 +347,7 @@ details.hidden {
   border-radius: 8px;
   background-color: var(--error-background-color);
   color: var(--error-color);
-  border: 1px solid var(--error-color);
+  border: 1px solid rgba(255, 69, 58, 0.5); /* Slightly stronger border */
   margin: 15px;
 }
 .error-display p {
@@ -290,7 +366,12 @@ details.hidden {
   margin-bottom: 15px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: var(--background-color);
+  background-color: rgba(
+    58,
+    58,
+    60,
+    0.7
+  ); /* Slightly different history section bg */
 }
 
 .history-date-section summary {
@@ -384,7 +465,7 @@ details[open].history-date-section summary {
 }
 
 .content-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 100, 100, 0.7);
+  background: rgba(150, 150, 150, 0.7);
 }
 
 /* Add styles for hoverable words */

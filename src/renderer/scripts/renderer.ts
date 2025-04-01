@@ -67,8 +67,22 @@ const emptyHistoryMessage = document.getElementById(
 
 const customTooltip = document.getElementById("customTooltip") as HTMLElement;
 
+const copyTranslationBtn = document.getElementById(
+  "copyTranslationBtn"
+) as HTMLButtonElement;
+const copyPronunciationBtn = document.getElementById(
+  "copyPronunciationBtn"
+) as HTMLButtonElement;
+
 // --- State Management ---
 let currentView: "translation" | "history" | "empty" = "empty";
+
+// --- State for Loading Timer ---
+let loadingTimerInterval: number | null = null;
+let loadingStartTime: number | null = null;
+const loadingTimerElement = document.getElementById(
+  "loadingTimer"
+) as HTMLSpanElement;
 
 // --- View Switching Logic ---
 function showView(
@@ -109,20 +123,46 @@ function showView(
 function showLoading(originalInput: string) {
   console.log("Showing loading indicator for:", originalInput);
   showView("translationContainer");
-  loadingIndicator.classList.remove("hidden");
-  errorDisplay.classList.add("hidden");
-  translationResult.classList.add("hidden");
-  // Clear previous results but keep original text potentially visible
+
+  // Keep original text visible
   originalText.textContent = originalInput;
-  translatedText.textContent = "";
-  translatedPronunciation.textContent = "";
-  translationFormality.textContent = "";
-  wordBreakdown.innerHTML = "";
-  tipsList.innerHTML = "";
-  alternativesList.innerHTML = "";
+  (
+    originalText.closest(".original-text-section") as HTMLElement
+  )?.classList.remove("hidden");
+
+  // Hide previous results/error, show loading indicator
+  translationResult.classList.add("hidden"); // Hide the main result block
+  errorDisplay.classList.add("hidden");
+  loadingIndicator.classList.remove("hidden");
+
+  // --- Start Timer ---
+  if (loadingTimerInterval) {
+    clearInterval(loadingTimerInterval);
+  }
+  loadingStartTime = Date.now();
+  loadingTimerElement.textContent = "0.00"; // Reset timer display
+
+  loadingTimerInterval = window.setInterval(() => {
+    // Use window.setInterval for correct type
+    if (loadingStartTime) {
+      const elapsed = (Date.now() - loadingStartTime) / 1000;
+      loadingTimerElement.textContent = elapsed.toFixed(2);
+    }
+  }, 50); // Update roughly 20 times a second
+}
+
+// --- Stop Timer Function ---
+function stopLoadingTimer() {
+  if (loadingTimerInterval) {
+    clearInterval(loadingTimerInterval);
+    loadingTimerInterval = null;
+    loadingStartTime = null;
+    console.log("Loading timer stopped.");
+  }
 }
 
 function showError(originalInput: string, errorMsg: string) {
+  stopLoadingTimer(); // Stop timer on error
   console.error("Showing error:", errorMsg, "for input:", originalInput);
   showView("translationContainer");
   loadingIndicator.classList.add("hidden");
@@ -144,6 +184,7 @@ function escapeHtml(unsafe: string | undefined | null): string {
 }
 
 function showTranslation(entry: TranslationEntry) {
+  stopLoadingTimer(); // Stop timer on success
   console.log(
     "[Renderer] showTranslation called with entry:",
     JSON.stringify(entry, null, 2)
@@ -280,73 +321,51 @@ function showTranslation(entry: TranslationEntry) {
     )?.classList.add("hidden");
   }
 
-  // --- Hide Details Sections By Default ---
-  const breakdownSection = wordBreakdown.closest(
-    "details"
-  ) as HTMLDetailsElement;
-  const tipsSection = tipsList.closest("details") as HTMLDetailsElement;
-  const alternativesSection = alternativesList.closest(
-    "details"
-  ) as HTMLDetailsElement;
+  // --- Show/Hide Tip and Alternative Sections ---
+  const tipsSection = document.querySelector(".tips-section") as HTMLElement;
+  const alternativesSection = document.querySelector(
+    ".alternatives-section"
+  ) as HTMLElement;
 
-  breakdownSection?.classList.add("hidden"); // Hide word breakdown section
-  // We might still populate tips/alternatives if data exists, but keep sections hidden initially
-
-  // Populate Tips (keep hidden)
+  // Populate and Show/Hide Tips Section
   tipsList.innerHTML = "";
-  if (
-    translationData.tips &&
-    Array.isArray(translationData.tips) &&
-    translationData.tips.length > 0
-  ) {
-    console.log(
-      "[Renderer] Populating hidden tips section with",
-      translationData.tips.length,
-      "tips."
-    );
+  if (translationData.tips?.length > 0) {
+    // Simplified check
+    console.log("[Renderer] Populating tips section.");
     translationData.tips.forEach((tip: string) => {
       const li = document.createElement("li");
       li.textContent = tip;
       tipsList.appendChild(li);
     });
-    tipsSection?.classList.remove("hidden"); // Remove hidden if there are tips
+    tipsSection?.classList.remove("hidden"); // Show section
   } else {
-    console.log("[Renderer] No tips data found.");
-    tipsSection?.classList.add("hidden");
+    console.log("[Renderer] No tips data found, hiding section.");
+    tipsSection?.classList.add("hidden"); // Hide section
   }
-  if (tipsSection) tipsSection.open = false; // Ensure it's closed
 
-  // Populate Alternatives (keep hidden)
+  // Populate and Show/Hide Alternatives Section
   alternativesList.innerHTML = "";
-  if (
-    translationData.alternatives &&
-    Array.isArray(translationData.alternatives) &&
-    translationData.alternatives.length > 0
-  ) {
-    console.log(
-      "[Renderer] Populating hidden alternatives section with",
-      translationData.alternatives.length,
-      "alternatives."
-    );
+  if (translationData.alternatives?.length > 0) {
+    // Simplified check
+    console.log("[Renderer] Populating alternatives section.");
     translationData.alternatives.forEach((alt: any) => {
       const div = document.createElement("div");
       div.className = "alternative-item";
       const safeGet = (obj: any, key: string) => obj?.[key] || "N/A";
       div.innerHTML = `
-                <p><strong>${safeGet(alt, "text")}</strong> (${safeGet(
+              <p><strong>${safeGet(alt, "text")}</strong> (${safeGet(
         alt,
         "pronunciation"
       )})</p>
-                <p><small>Context: ${safeGet(alt, "context")}</small></p>
-            `;
+              <p><small>Context: ${safeGet(alt, "context")}</small></p>
+          `;
       alternativesList.appendChild(div);
     });
-    alternativesSection?.classList.remove("hidden"); // Remove hidden if there are alternatives
+    alternativesSection?.classList.remove("hidden"); // Show section
   } else {
-    console.log("[Renderer] No alternatives data found.");
-    alternativesSection?.classList.add("hidden");
+    console.log("[Renderer] No alternatives data found, hiding section.");
+    alternativesSection?.classList.add("hidden"); // Hide section
   }
-  if (alternativesSection) alternativesSection.open = false; // Ensure it's closed
 
   console.log("[Renderer] showTranslation finished.");
 }
@@ -495,6 +514,47 @@ async function clearHistory() {
   }
 }
 
+// --- Helper: Copy to Clipboard with Feedback ---
+async function copyToClipboard(
+  text: string | null | undefined,
+  buttonElement: HTMLButtonElement
+) {
+  if (!text) {
+    console.warn("Attempted to copy empty text.");
+    return;
+  }
+  if (!navigator.clipboard) {
+    console.error("Clipboard API not available.");
+    // Optionally show an error message to the user
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    console.log("Text copied to clipboard:", text);
+
+    // Visual Feedback
+    const originalContent = buttonElement.innerHTML; // Store original icon
+    buttonElement.innerHTML = "✅"; // Checkmark emoji for feedback
+    buttonElement.classList.add("copied");
+    buttonElement.disabled = true;
+
+    setTimeout(() => {
+      buttonElement.innerHTML = originalContent; // Restore icon
+      buttonElement.classList.remove("copied");
+      buttonElement.disabled = false;
+    }, 1500); // Restore after 1.5 seconds
+  } catch (err) {
+    console.error("Failed to copy text: ", err);
+    // Optionally show an error message to the user
+    const originalContent = buttonElement.innerHTML;
+    buttonElement.innerHTML = "❌"; // Error emoji
+    setTimeout(() => {
+      buttonElement.innerHTML = originalContent; // Restore icon
+    }, 1500);
+  }
+}
+
 // --- Initialization and Event Listeners ---
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Renderer DOM ready");
@@ -507,6 +567,14 @@ document.addEventListener("DOMContentLoaded", () => {
     showView("translationContainer");
   });
   clearHistoryBtn.addEventListener("click", clearHistory);
+
+  // Add Copy Button Listeners
+  copyTranslationBtn.addEventListener("click", () => {
+    copyToClipboard(translatedText.textContent, copyTranslationBtn);
+  });
+  copyPronunciationBtn.addEventListener("click", () => {
+    copyToClipboard(translatedPronunciation.textContent, copyPronunciationBtn);
+  });
 
   // --- IPC Event Listeners (from preload via window.api) ---
   window.api.onTranslationLoading((originalText: string) => {
