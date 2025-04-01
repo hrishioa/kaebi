@@ -53,7 +53,15 @@ async function initializeApp() {
 let mb: Menubar;
 
 function createMenubar() {
+  // Use app.getAppPath() for potentially more robust path resolution in packaged app
+  // Note: __dirname points to dist/main after build
+  const appPath = app.getAppPath(); // Gets the path to the app's ASAR file or source root
+  // If running from source (__dirname is in dist/main), go up two levels then to assets
+  // If running packaged (appPath is usually '/Applications/AppName.app/Contents/Resources/app.asar'), need different relative path
+  // Let's try relative from __dirname first, as it worked for finding the file previously.
+  // We could add more complex logic later if needed for packaged app path differences.
   const iconPath = path.join(__dirname, "../../assets/iconTemplate.png");
+  console.log(`App Path: ${appPath}`);
   console.log(`Attempting to load icon from: ${iconPath}`);
 
   // Check if icon file exists
@@ -77,7 +85,7 @@ function createMenubar() {
       browserWindow: {
         width: 380,
         height: 500,
-        alwaysOnTop: true, // Restore alwaysOnTop
+        alwaysOnTop: true,
         webPreferences: {
           // Ensure preload path is correct relative to __dirname (which is in dist/main)
           preload: path.join(__dirname, "preload.js"),
@@ -93,8 +101,6 @@ function createMenubar() {
     mb.on("ready", () => {
       console.log("Menubar is ready. Tray should be visible.");
       mb.tray.setToolTip("Korean Translator (Cmd+Shift+T)");
-      console.log("Showing window explicitly on ready.");
-      mb.showWindow();
     });
 
     mb.on("after-show", () => {
